@@ -388,8 +388,9 @@ async function handleMessage(replyToken: string, source: any, message: any) {
 
 async function handleTextMessage(replyToken: string, userId: string, text: string, user: any) {
   try {
-    // テキスト記録機能を無効化：画像のみで記録するよう変更
-    const isRecordIntent = false; // text.includes('記録');
+    // 体重記録のみ有効：食事記録は画像のみ
+    const isWeightRecordIntent = text.includes('記録') && /(体重|weight|kg|ｋｇ|キロ|キログラム)/i.test(text);
+    const isRecordIntent = isWeightRecordIntent;
     
     // 多言語キーワード（将来復活予定）
     // const recordKeywords = [
@@ -428,7 +429,103 @@ async function handleTextMessage(replyToken: string, userId: string, text: strin
       return;
     }
     
-    // テキスト記録機能は完全無効化（isRecordIntent = false のため実行されない）
+    if (isRecordIntent) {
+      // 体重記録のみ処理（食事記録は無効）
+      console.log('⚖️ 体重記録処理開始:', text);
+      
+      // 連続入力防止
+      if (!canProcessTap(userId)) {
+        console.log('🚫 連続入力防止: 処理スキップ');
+        return;
+      }
+      
+      // 体重記録のパターンマッチング判定
+      function analyzeWeightPattern(text: string) {
+        try {
+          // 体重数値の抽出
+          const patterns = [
+            // 1. 明確な単位付き
+            /(\d+(?:\.\d+)?)\s*(kg|ｋｇ|キロ|キログラム)/i,
+            // 2. 体重文脈での数値のみ
+            /体重.*?(\d+(?:\.\d+)?)/i,
+            // 3. 数値のみ（体重関連キーワードが必要）
+            /(\d+(?:\.\d+)?)/
+          ];
+          
+          for (let i = 0; i < patterns.length; i++) {
+            const match = text.match(patterns[i]);
+            if (match) {
+              const weight = parseFloat(match[1]);
+              
+              // 妥当性チェック（極端な値は記録するが警告）
+              if (weight < 20 || weight > 300) {
+                console.log('⚠️ 体重値が極端です:', weight);
+              }
+              
+              // パターン3の場合は体重キーワードが必要
+              if (i === 2) {
+                const hasWeightContext = /体重|weight/i.test(text);
+                if (!hasWeightContext) {
+                  console.log('❌ 数値のみ - 体重文脈なし:', text);
+                  continue;
+                }
+              }
+              
+              console.log('✅ 体重記録パターンマッチ成功:', { weight, pattern: i + 1 });
+              return {
+                isWeightRecord: true,
+                weight: weight,
+                confidence: i === 0 ? 0.95 : (i === 1 ? 0.9 : 0.8)
+              };
+            }
+          }
+          
+          console.log('❌ 体重パターンマッチ失敗:', text);
+          return { isWeightRecord: false, reason: 'パターン不一致' };
+          
+        } catch (error) {
+          console.error('体重パターン判定エラー:', error);
+          return { isWeightRecord: false, reason: 'エラー' };
+        }
+      }
+
+      const weightJudgment = analyzeWeightPattern(text);
+      console.log('⚖️ 体重パターン判定結果:', JSON.stringify(weightJudgment, null, 2));
+
+      if (weightJudgment.isWeightRecord) {
+        // 記録実行前に制限チェック
+        const recordLimit = await checkUsageLimit(userId, 'record');
+        if (!recordLimit.allowed) {
+          console.log('⚠️ 記録制限達成（体重記録時）', { userId, reason: recordLimit.reason });
+          await stopLoadingAnimation(userId);
+          await replyMessage(replyToken, [await createUsageLimitFlex('record', userId)]);
+          return;
+        }
+        
+        await handleWeightRecord(userId, weightJudgment, replyToken);
+        // 記録成功時に使用回数を記録
+        await recordUsage(userId, 'record');
+        return;
+      }
+      
+      // 体重記録以外は通常のAI会話として処理
+      console.log('❌ 体重記録判定失敗、通常会話に移行');
+    }
+    
+    // お問い合わせ意図をAIで判定
+    console.log('📞 お問い合わせ意図判定開始:', text.substring(0, 50));
+    const aiService = new AIHealthService();
+    const isSupportInquiry = await aiService.isCustomerSupportInquiry(text);
+    console.log('📞 お問い合わせ意図判定結果:', isSupportInquiry);
+    
+    if (isSupportInquiry) {
+      console.log('📞 お問い合わせと判定、誘導メッセージ送信');
+      await replyMessage(replyToken, [{
+        type: 'text',
+        text: 'お問い合わせありがとうございます！\n\nプラン変更・解約・料金・技術的なサポートに関するご質問は、専門スタッフが対応いたします。\n\nリッチメニューの「マイページ」からお問い合わせができます。\n\n健康管理に関するご相談でしたら、引き続きこちらでお答えできます！'
+      }]);
+      return;
+    }
     
     console.log('🤖 通常モード - AI会話で応答');
     

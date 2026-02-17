@@ -2015,6 +2015,44 @@ ${promptTemplate}
     }
   }
 
+  // お問い合わせ意図判定
+  async isCustomerSupportInquiry(text: string): Promise<boolean> {
+    try {
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+      
+      const prompt = `以下のメッセージがヘルシーくんサービスに関するお問い合わせ・サポート依頼かを判定してください。
+
+【お問い合わせと判定する内容】
+- プラン変更・解約・料金に関する質問
+- 技術的な問題・不具合の報告  
+- アカウント・ログインの問題
+- サービス利用方法の具体的な質問
+- 返金・支払い関連の問題
+
+【普通の会話と判定する内容】
+- 健康や食事に関する相談
+- 雑談・世間話
+- 食べ物の価格の話（「このご飯高いね」等）
+- 運動プランの相談（「プランク運動」等）
+- 一般的な生活の話
+
+メッセージ: "${text}"
+
+回答: true または false のみ`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text().toLowerCase().trim();
+      
+      return responseText.includes('true');
+      
+    } catch (error) {
+      console.error('お問い合わせ意図判定エラー:', error);
+      // エラー時は false（通常会話として扱う）
+      return false;
+    }
+  }
+
 }
 
 export default AIHealthService;

@@ -354,42 +354,7 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
             </div>
           </div>
 
-          {/* 食事記録（テキスト） */}
-          <div className="mb-20">
-            <div className="section">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                食事記録（テキストで記録）
-              </h2>
-              <p className="text-gray-700 leading-relaxed mb-4">
-                「記録」という言葉を含めてメッセージを送ると、食事記録モードになります。1食ずつでも、まとめてでもOK
-              </p>
-              <div className="space-y-3 text-gray-700 mb-4">
-                <p className="font-semibold">記録例</p>
-                <div className="flex items-start">
-                  <span className="mr-3">⚫︎</span>
-                  <span>「朝にヨーグルト記録したい」</span>
-                </div>
-                <div className="flex items-start">
-                  <span className="mr-3">⚫︎</span>
-                  <span>「昼に唐揚げとご飯100g食べた！記録お願いします」</span>
-                </div>
-                <div className="flex items-start">
-                  <span className="mr-3">⚫︎</span>
-                  <span>「記録：朝にヨーグルト 昼にカツ丼と味噌汁 夜に餃子5個とご飯 おやつにクッキー2枚」</span>
-                </div>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-lg mb-16">
-                <p className="font-semibold text-gray-800 mb-2">重要</p>
-                <p className="text-gray-700 text-sm mb-2">
-                  必ず「記録」という言葉を含めてください。含めないと普通の会話として扱われます。
-                </p>
-                <p className="font-semibold text-gray-800 mb-2">記録のコツ</p>
-                <p className="text-gray-700 text-sm">
-                  料理の中身も記録したい場合は、例：「お鍋（豚肉 白菜 えのき）記録して」のように記録すると、うまく分析されます
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* テキスト記録機能は削除されました */}
 
           {/* 食事記録（アプリから） */}
           <div className="mb-20">
@@ -403,11 +368,11 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
               <div className="space-y-3 text-gray-800 mb-16">
                 <div className="flex items-start">
                   <span className="mr-3">⚫︎</span>
-                  <span>カメラで記録（LINEと同じ）</span>
+                  <span>カメラで記録</span>
                 </div>
                 <div className="flex items-start">
                   <span className="mr-3">⚫︎</span>
-                  <span>テキストで記録（LINEと同じ）</span>
+                  <span>テキストで記録（アプリ専用機能）</span>
                 </div>
                 <div className="flex items-start">
                   <span className="mr-3">⚫︎</span>
@@ -428,7 +393,7 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
                 体重記録
               </h2>
               <p className="text-gray-700 leading-relaxed mb-4">
-                「記録」という言葉を含めて体重を記録できます
+                LINEで「記録」という言葉を含めて体重を記録できます
               </p>
               <div className="space-y-3 text-gray-700 mb-4">
                 <p className="font-semibold">記録例</p>
@@ -728,23 +693,7 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
                 基本的な使い方
               </h2>
 
-              <div className="mb-6">
-                <div className="bg-blue-50 p-4 rounded-lg mb-3">
-                  <h3 className="font-bold text-gray-800">Q. 記録したいのに普通の会話になります</h3>
-                </div>
-                <p className="text-gray-700 pl-3 mb-16">
-                  A. メッセージに「記録」という言葉を含めて送ってください。例：「朝食記録したい」「体重記録」など。
-                </p>
-              </div>
-
-              <div className="mb-6">
-                <div className="bg-blue-50 p-4 rounded-lg mb-3">
-                  <h3 className="font-bold text-gray-800">Q. ヘルシーくんと会話したいのに記録になります</h3>
-                </div>
-                <p className="text-gray-700 pl-3 mb-16">
-                  A. メッセージに「記録」という言葉が含まれていませんか？「記録」という言葉を入れずにメッセージを送ってください。
-                </p>
-              </div>
+              {/* テキスト記録関連のQ&Aは削除 */}
 
               <div className="mb-6">
                 <div className="bg-blue-50 p-4 rounded-lg mb-3">
@@ -778,27 +727,11 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
                   <h3 className="font-bold text-gray-800">Q. 写真を複数枚送りたいのですが</h3>
                 </div>
                 <p className="text-gray-700 pl-3 mb-16">
-                  A. 写真での記録は1回につき1枚です。複数の料理を記録したい場合は、1枚ずつ分けて送るか、テキストでまとめて記録してください。
+                  A. 写真での記録は1回につき1枚です。複数の料理を記録したい場合は、1枚ずつ分けて送ってください。
                 </p>
               </div>
 
-              <div className="mb-6">
-                <div className="bg-green-50 p-4 rounded-lg mb-3">
-                  <h3 className="font-bold text-gray-800">Q. 料理の中身まで細かく記録したいです</h3>
-                </div>
-                <p className="text-gray-700 pl-3 mb-16">
-                  A. テキスト記録で「お鍋（豚肉 白菜 えのき）」のように、カッコ内に具材を入れると、より正確に分析されます。
-                </p>
-              </div>
-
-              <div className="mb-6">
-                <div className="bg-green-50 p-4 rounded-lg mb-3">
-                  <h3 className="font-bold text-gray-800">Q. 朝・昼・夜をまとめて記録できますか？</h3>
-                </div>
-                <p className="text-gray-700 pl-3 mb-16">
-                  A. できます。「朝にヨーグルト 昼にカツ丼 夜に餃子5個」のように、1つのメッセージにまとめて送ってください。
-                </p>
-              </div>
+              {/* テキスト記録関連の食事Q&Aは削除 */}
             </div>
           </div>
 
