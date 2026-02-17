@@ -388,8 +388,8 @@ async function handleMessage(replyToken: string, source: any, message: any) {
 
 async function handleTextMessage(replyToken: string, userId: string, text: string, user: any) {
   try {
-    // 統一モード：「記録」キーワードで記録判定（多言語機能は一時無効化）
-    const isRecordIntent = text.includes('記録');
+    // テキスト記録機能を無効化：画像のみで記録するよう変更
+    const isRecordIntent = false; // text.includes('記録');
     
     // 多言語キーワード（将来復活予定）
     // const recordKeywords = [
@@ -428,264 +428,13 @@ async function handleTextMessage(replyToken: string, userId: string, text: strin
       return;
     }
     
-    if (isRecordIntent) {
-      // 統一モード：多言語「記録」キーワードが含まれる場合のみ記録処理
-      console.log('📝 統一モード - 多言語記録キーワード検出、記録処理開始:', text);
-      
-      // 連続入力防止
-      if (!canProcessTap(userId)) {
-        console.log('🚫 統一モード - 連続入力防止: 処理スキップ');
-        return;
-      }
-      
-      // 体重記録のパターンマッチング判定（AI呼び出しを削除）
-      console.log('📊 統一モード - 体重記録パターン判定開始:', text);
-
-      function analyzeWeightPattern(text: string) {
-        try {
-          // 🎯 体重文脈の事前チェック（優先判定）
-          const hasWeightContext = /(体重|weight|kg|ｋｇ|キロ|キログラム)/i.test(text);
-          
-          // 疑問符チェック（質問・相談を除外）- ただし体重記録依頼は許可
-          const hasQuestionMark = /[？?]/.test(text);
-          const hasQuestionWords = /(どう|何|なに|いくつ|どのくらい|どれくらい)/.test(text);
-          const isRecordRequest = /(記録|して|お願い|please)/i.test(text);
-          
-          if ((hasQuestionMark || hasQuestionWords) && !(hasWeightContext && isRecordRequest)) {
-            console.log('❌ 体重判定 - 質問・相談として除外:', text);
-            return { isWeightRecord: false, reason: '質問・相談' };
-          }
-          
-          
-          // 体重数値の抽出（優先度順）
-          const patterns = [
-            // 1. 明確な単位付き
-            /(\d+(?:\.\d+)?)\s*(kg|ｋｇ|キロ|キログラム)/i,
-            // 2. 体重文脈での数値のみ
-            /体重.*?(\d+(?:\.\d+)?)/i,
-            // 3. 数値のみ（体重関連キーワードが必要）
-            /^(\d+(?:\.\d+)?)$/
-          ];
-          
-          for (let i = 0; i < patterns.length; i++) {
-            const match = text.match(patterns[i]);
-            if (match) {
-              const weight = parseFloat(match[1]);
-              
-              // 妥当性チェック（極端な値は記録するが警告）
-              if (weight < 20 || weight > 300) {
-                console.log('⚠️ 体重値が極端です:', weight);
-                // でも記録は続行（ユーザーの意図を尊重）
-              }
-              
-              // パターン3の場合は体重キーワードが必要
-              if (i === 2) {
-                const hasWeightContext = /体重|weight/i.test(text);
-                if (!hasWeightContext) {
-                  console.log('❌ 数値のみ - 体重文脈なし:', text);
-                  continue;
-                }
-              }
-              
-              console.log('✅ 体重記録パターンマッチ成功:', { weight, pattern: i + 1 });
-              return {
-                isWeightRecord: true,
-                weight: weight,
-                confidence: i === 0 ? 0.95 : (i === 1 ? 0.9 : 0.8)
-              };
-            }
-          }
-          
-          console.log('❌ 体重パターンマッチ失敗:', text);
-          return { isWeightRecord: false, reason: 'パターン不一致' };
-          
-        } catch (error) {
-          console.error('体重パターン判定エラー:', error);
-          return { isWeightRecord: false, reason: 'エラー' };
-        }
-      }
-
-      const weightJudgment = analyzeWeightPattern(text);
-      console.log('📊 統一モード - 体重パターン判定結果:', JSON.stringify(weightJudgment, null, 2));
-
-      if (weightJudgment.isWeightRecord) {
-        // 記録実行前に制限チェック
-        const recordLimit = await checkUsageLimit(userId, 'record');
-        if (!recordLimit.allowed) {
-          console.log('⚠️ 記録制限達成（体重記録時）', { userId, reason: recordLimit.reason });
-          await stopLoadingAnimation(userId);
-          await replyMessage(replyToken, [await createUsageLimitFlex('record', userId)]);
-          return;
-        }
-        
-        await handleWeightRecord(userId, weightJudgment, replyToken);
-        // 記録成功時に使用回数を記録
-        await recordUsage(userId, 'record');
-        return;
-      }
-      
-      // 食事記録の判定
-      console.log('🍽️ 統一モード - 食事記録判定開始:', text);
-      try {
-        const mealJudgment = await aiService.analyzeFoodRecordIntent(text);
-        console.log('🍽️ 統一モード - 食事判定結果:', JSON.stringify(mealJudgment, null, 2));
-        
-        if (mealJudgment.isFoodRecord) {
-          console.log('🍽️ 記録モード - 食事として認識、パターンマッチング開始');
-          
-          // Step 1: 学習済み食事を検索
-          const learnedFood = await findLearnedFood(userId, mealJudgment.foodText || text);
-          let mealAnalysis;
-          
-          if (false) { // 学習済み食事マッチを無効化してAI分析を強制
-            console.log('🎯 学習済み食事マッチ:', learnedFood.food, '信頼度:', learnedFood.confidence);
-            mealAnalysis = {
-              calories: learnedFood.data.calories,
-              protein: learnedFood.data.protein,
-              fat: learnedFood.data.fat,
-              carbs: learnedFood.data.carbs,
-              foodItems: [learnedFood.food],
-              displayName: learnedFood.food,
-              baseFood: learnedFood.food,
-              isPatternMatched: true,
-              matchConfidence: 'learned_food',
-              source: 'learned'
-            };
-            
-            // 使用回数を増やす
-            await addToLearnedFoods(userId, learnedFood.food, mealAnalysis);
-            
-          } else {
-            // Step 2: 基本データベースでパターンマッチング
-            const foodMatch = findFoodMatch(mealJudgment.foodText || text);
-            
-            if (foodMatch && foodMatch.confidence === 'high') {
-              console.log('✅ パターンマッチング成功:', foodMatch.food.name, '信頼度:', foodMatch.confidence);
-              // パターンマッチングで栄養価を計算
-              const food = foodMatch.food;
-              const servingSize = food.commonServing || 100; // デフォルト100g
-              
-              mealAnalysis = {
-                calories: Math.round((food.calories * servingSize) / 100),
-                protein: Number(((food.protein * servingSize) / 100).toFixed(1)),
-                fat: Number(((food.fat * servingSize) / 100).toFixed(1)),
-                carbs: Number(((food.carbs * servingSize) / 100).toFixed(1)),
-                foodItems: [food.name],
-                displayName: food.name,
-                baseFood: food.name,
-                portion: `${servingSize}g`,
-                isPatternMatched: true,
-                matchConfidence: foodMatch.confidence,
-                source: 'database'
-              };
-              
-              // 学習済み食事としてFirestoreに保存
-              await addToLearnedFoods(userId, food.name, mealAnalysis);
-              
-            } else {
-              console.log('❌ パターンマッチング失敗、AI分析開始');
-              // Step 3: パターンマッチングできない場合はAI分析
-              mealAnalysis = await aiService.analyzeMealFromText(mealJudgment.foodText || text);
-              
-              // AI分析成功時も学習済み食事として保存
-              if (mealAnalysis && mealAnalysis.foodItems && mealAnalysis.foodItems.length > 0) {
-                mealAnalysis.source = 'ai_analyzed';
-                await addToLearnedFoods(userId, mealAnalysis.foodItems[0], mealAnalysis);
-              }
-            }
-          }
-          
-          console.log('🍽️ 記録モード - 最終分析結果:', JSON.stringify(mealAnalysis, null, 2));
-          await storeTempMealAnalysis(userId, mealAnalysis, null, text);
-          
-          // 記録実行前に制限チェック
-          const recordLimit = await checkUsageLimit(userId, 'record');
-          if (!recordLimit.allowed) {
-            console.log('⚠️ 記録制限達成（食事記録時）', { userId, reason: recordLimit.reason });
-            await stopLoadingAnimation(userId);
-            await replyMessage(replyToken, [await createUsageLimitFlex('record', userId)]);
-            return;
-          }
-          
-          if (mealJudgment.isMultipleMealTimes) {
-            // 複数食事時間の処理
-            await handleMultipleMealTimesRecord(userId, mealJudgment.mealTimes, replyToken);
-            // 記録成功時に使用回数を記録
-            await recordUsage(userId, 'record');
-            // 記録後もクイックリプライで記録モード継続
-            return;
-          } else if (mealJudgment.hasSpecificMealTime) {
-            const mealType = mealJudgment.mealTime;
-            await saveMealRecord(userId, mealType, replyToken);
-            // 記録成功時に使用回数を記録
-            await recordUsage(userId, 'record');
-            // 記録後もクイックリプライで記録モード継続
-            return;
-          } else {
-            // 食事タイプ選択のクイックリプライ表示（日本語固定）
-            await stopLoadingAnimation(userId);
-            await replyMessage(replyToken, [{
-              type: 'text',
-              text: `どの食事を記録しますか？`,
-              quickReply: {
-                items: [
-                  { type: 'action', action: { type: 'postback', label: '朝食', data: 'action=meal_breakfast' }},
-                  { type: 'action', action: { type: 'postback', label: '昼食', data: 'action=meal_lunch' }},
-                  { type: 'action', action: { type: 'postback', label: '夕食', data: 'action=meal_dinner' }},
-                  { type: 'action', action: { type: 'postback', label: '間食', data: 'action=meal_snack' }},
-                  { type: 'action', action: { type: 'postback', label: '記録しない', data: 'action=cancel_record' }}
-                ]
-              }
-            }]);
-            return;
-          }
-        }
-      } catch (mealAnalysisError) {
-        console.error('🔥 食事記録判定エラー:', {
-          error: mealAnalysisError.message,
-          stack: mealAnalysisError.stack,
-          text: text
-        });
-        // エラー時は通常のAI会話に移行
-      }
-    }
+    // テキスト記録機能は完全無効化（isRecordIntent = false のため実行されない）
     
     console.log('🤖 通常モード - AI会話で応答');
     
-    // 厳格なレシピ判定
-    console.log('🔍 厳格レシピ判定開始:', text.substring(0, 50));
-    const isRecipe = await aiService.isRecipeQuestion(text);
-    console.log('🍳 厳格レシピ判定結果:', { isRecipe, text });
-    
-    let aiResponse;
-    
-    if (isRecipe) {
-      console.log('🍳 レシピFlexメッセージ生成開始');
-      const recipeResult = await aiService.generateRecipeWithFlex(text, userId);
-      console.log('🍳 レシピ生成完了:', { hasFlexMessage: !!recipeResult.flexMessage });
-      
-      if (recipeResult.flexMessage) {
-        console.log('🍳 レシピFlexメッセージ送信開始');
-        // Flexメッセージを送信
-        await stopLoadingAnimation(userId);
-        await replyMessage(replyToken, [
-          recipeResult.flexMessage
-        ]);
-        
-        // 会話履歴を保存
-        await aiService.saveConversation(userId, text, recipeResult.textResponse);
-        // AI応答成功時に使用回数を記録
-        await recordUsage(userId, 'ai');
-        console.log('🍳 レシピFlexメッセージ送信完了');
-        return;
-      } else {
-        aiResponse = recipeResult.textResponse;
-      }
-    } else {
-      // 通常のAI会話
-      const characterSettings = null;
-      aiResponse = await aiService.generateGeneralResponse(text, userId, characterSettings);
-    }
+    // レシピ機能と記録機能を無効化：すべて通常のAI会話として処理
+    const characterSettings = null;
+    const aiResponse = await aiService.generateGeneralResponse(text, userId, characterSettings);
     
     // 会話履歴を保存
     if (aiResponse) {
@@ -1768,6 +1517,68 @@ async function deleteTempMealAnalysis(userId: string) {
     console.log('🧹 一時データ削除完了:', userId);
   } catch (error) {
     console.error('一時データ削除エラー:', error);
+  }
+}
+
+// 一時データクリア（削除と同じ処理）
+async function clearTempMealAnalysis(userId: string) {
+  return await deleteTempMealAnalysis(userId);
+}
+
+// 画像キャッシュクリア
+function clearImageCache(userId: string) {
+  const keys = Array.from(imageCache.keys()).filter(key => key.startsWith(userId));
+  keys.forEach(key => imageCache.delete(key));
+  console.log('🧹 画像キャッシュクリア完了:', userId, `${keys.length}件削除`);
+}
+
+// カロリー分析処理（カロリーのみの記録）
+async function handleCalorieAnalysis(userId: string, replyToken: string) {
+  try {
+    console.log('🔥 カロリー分析処理開始:', userId);
+    
+    // 一時保存されたデータを取得
+    const tempData = await getTempMealAnalysis(userId);
+    if (!tempData) {
+      await replyMessage(replyToken, [{
+        type: 'text',
+        text: 'データが見つかりません。もう一度食事内容を送ってください。'
+      }]);
+      return;
+    }
+    
+    // 一時データを削除（重複防止）
+    await deleteTempMealAnalysis(userId);
+    console.log('🔒 カロリー分析: 一時データを削除しました');
+    
+    // カロリーのみのFlexメッセージを作成
+    const analysis = tempData.analysis;
+    const totalCalories = analysis.calories || analysis.totalCalories || 0;
+    
+    if (totalCalories === 0) {
+      await replyMessage(replyToken, [{
+        type: 'text',
+        text: 'カロリー情報が取得できませんでした。もう一度お試しください。'
+      }]);
+      return;
+    }
+    
+    // カロリーのみのFlexメッセージを送信
+    const calorieFlexMessage = createCalorieOnlyFlexMessage(
+      analysis.displayName || analysis.foodItems?.[0] || '食事',
+      totalCalories,
+      tempData.originalText || '食事の記録'
+    );
+    
+    await replyMessage(replyToken, [calorieFlexMessage]);
+    console.log('✅ カロリー分析処理完了:', userId);
+    
+  } catch (error) {
+    console.error('❌ カロリー分析処理エラー:', error);
+    await replyMessage(replyToken, [{
+      type: 'text',
+      text: 'カロリー分析でエラーが発生しました。もう一度お試しください。'
+    }]);
   }
 }
 
