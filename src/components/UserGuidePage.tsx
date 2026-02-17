@@ -348,7 +348,7 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
               <div className="bg-blue-50 p-4 rounded-lg mb-16">
                 <p className="font-semibold text-gray-800 mb-2">重要</p>
                 <p className="text-gray-700 text-sm">
-                  写真を送ると自動で記録モードになります。「記録」という言葉は不要です。1枚ずつ送信してください。
+                  写真を送ると自動で食事記録されます。1枚ずつ送信してください。
                 </p>
               </div>
             </div>
@@ -372,7 +372,7 @@ export function UserGuidePage({ onBack }: UserGuidePageProps) {
                 </div>
                 <div className="flex items-start">
                   <span className="mr-3">⚫︎</span>
-                  <span>テキストで記録（アプリ専用機能）</span>
+                  <span>手動で記録（アプリ専用機能）</span>
                 </div>
                 <div className="flex items-start">
                   <span className="mr-3">⚫︎</span>
