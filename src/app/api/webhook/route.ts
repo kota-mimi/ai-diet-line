@@ -388,6 +388,9 @@ async function handleMessage(replyToken: string, source: any, message: any) {
 
 async function handleTextMessage(replyToken: string, userId: string, text: string, user: any) {
   try {
+    // AIサービスインスタンスを1回作成して使い回す
+    const aiService = new AIHealthService();
+    
     // 体重記録のみ有効：食事記録は画像のみ
     const isWeightRecordIntent = text.includes('記録') && /(体重|weight|kg|ｋｇ|キロ|キログラム)/i.test(text);
     const isRecordIntent = isWeightRecordIntent;
@@ -417,8 +420,6 @@ async function handleTextMessage(replyToken: string, userId: string, text: strin
     
     // Loading Animation開始（AIが考え中）
     await startLoadingAnimation(userId, 15);
-    
-    const aiService = new AIHealthService();
     
     // デバッグ: ステータス確認コマンド
     if (text.includes('ステータス') || text.includes('状態')) {
@@ -514,7 +515,6 @@ async function handleTextMessage(replyToken: string, userId: string, text: strin
     
     // お問い合わせ意図をAIで判定
     console.log('📞 お問い合わせ意図判定開始:', text.substring(0, 50));
-    const aiService = new AIHealthService();
     const isSupportInquiry = await aiService.isCustomerSupportInquiry(text);
     console.log('📞 お問い合わせ意図判定結果:', isSupportInquiry);
     
