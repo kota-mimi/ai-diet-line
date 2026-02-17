@@ -513,6 +513,20 @@ async function handleTextMessage(replyToken: string, userId: string, text: strin
       console.log('❌ 体重記録判定失敗、通常会話に移行');
     }
     
+    // 食事記録依頼をルールで判定
+    console.log('🍽️ 食事記録依頼判定開始:', text.substring(0, 50));
+    const isFoodRecordRequest = aiService.isFoodRecordRequest(text);
+    console.log('🍽️ 食事記録依頼判定結果:', isFoodRecordRequest);
+    
+    if (isFoodRecordRequest) {
+      console.log('🍽️ 食事記録依頼と判定、写真誘導メッセージ送信');
+      await replyMessage(replyToken, [{
+        type: 'text',
+        text: '食事の記録は写真を送ってもらえるかな？📸 AIが自動で分析して記録するよ！詳細な記録や編集はマイページからもできます。'
+      }]);
+      return;
+    }
+
     // お問い合わせ意図をAIで判定
     console.log('📞 お問い合わせ意図判定開始:', text.substring(0, 50));
     const isSupportInquiry = await aiService.isCustomerSupportInquiry(text);
