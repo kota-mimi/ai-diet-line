@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ja_JP",
     siteName: "ヘルシーくん",
-    url: "https://kotakun-ai-health.vercel.app",
+    url: "https://ai-diet-line-test.vercel.app",
   },
   twitter: {
     card: "summary_large_image",
