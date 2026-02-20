@@ -60,8 +60,8 @@ export function LiffProvider({ children }: LiffProviderProps) {
         // Dynamic import to avoid SSR issues
         const liff = (await import('@line/liff')).default;
         
-        // 開発環境でLIFF IDがないか、LIFF環境外の場合はテストユーザーを設定
-        if (process.env.NODE_ENV === 'development' && !window.location.href.includes('liff')) {
+        // LIFF環境外の場合はテストユーザーを設定（開発・本番共通）
+        if (!window.location.href.includes('liff')) {
           setState(prev => ({
             ...prev,
             error: null,
